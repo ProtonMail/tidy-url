@@ -1,5 +1,5 @@
 {
-    "name": "tidy-url",
+    "name": "@protontech/tidy-url",
     "version": "1.10.1",
     "description": "Cleans/removes tracking or garbage parameters from URLs",
     "main": "lib/index.js",
