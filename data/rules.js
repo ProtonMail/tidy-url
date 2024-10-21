@@ -1,4 +1,4 @@
-const $kurlc_rules = [
+module.exports = [
     {
         name: 'Global',
         match: /.*/,
@@ -9,14 +9,14 @@ const $kurlc_rules = [
             'utm_pubreferrer', 'utm_swu', 'utm_social-type', 'utm_brand',
             'utm_team', 'utm_feeditemid', 'utm_id', 'utm_marketing_tactic', 
             'utm_creative_format', 'utm_campaign_id', 'utm_source_platform',
-            'utm_timestamp', 'utm_souce',
+            'utm_timestamp', 'utm_souce', 'utm_couponvalue',
             // ITM parameters, a variant of UTM parameters
             'itm_source', 'itm_medium', 'itm_term', 'itm_campaign', 'itm_content',
             'itm_channel', 'itm_source_s', 'itm_medium_s', 'itm_campaign_s',
             'itm_audience',
             // INT parameters, another variant of UTM
             'int_source', 'int_cmp_name', 'int_cmp_id', 'int_cmp_creative',
-            'int_medium', 'int_campaign',
+            'int_medium', 'int_campaign', 'int_content',
             // piwik (https://github.com/DrKain/tidy-url/issues/49)
             'pk_campaign', 'pk_cpn', 'pk_source', 'pk_medium',
             'pk_keyword', 'pk_kwd', 'pk_content', 'pk_cid',
@@ -87,7 +87,8 @@ const $kurlc_rules = [
         rules: [
             'ref_campaign', 'ref_source', 'tags', 'keyword', 'channel', 'campaign',
             'user_agent', 'domain', 'base_url', '$android_deeplink_path',
-            '$deeplink_path', '$og_redirect', 'share_id'
+            '$deeplink_path', '$og_redirect', 'share_id', 'correlation_id', 'ref',
+            'rdt'
         ]
     },
     {
@@ -105,6 +106,12 @@ const $kurlc_rules = [
         name: 'twitch.tv',
         match: /www.twitch.tv/i,
         rules: ['tt_medium', 'tt_content', 'tt_email_id']
+    },
+    {
+        name: 'twitch.tv-email',
+        match_href: true,
+        match: /www.twitch.tv\/r\/e/i,
+        decode: { handler: 'twitch.tv-email', targetPath: true }
     },
     {
         name: 'blog.twitch.tv',
@@ -127,7 +134,7 @@ const $kurlc_rules = [
     },
     {
         name: 'aliexpress.com',
-        match: /^(?:https?:\/\/)?(?:[^.]+\.)?aliexpress\.[a-z0-9]{0,3}/i,
+        match: /^(?:https?:\/\/)?(?:[^.]+\.)?aliexpress\.(?:[a-z]{2,}){1,}/i,
         rules: [
             '_t', 'spm', 'algo_pvid', 'algo_expid', 'btsid', 'ws_ab_test',
             'initiative_id', 'origin', 'widgetId', 'tabType', 'productId',
@@ -136,7 +143,8 @@ const $kurlc_rules = [
             'gatewayAdapt', '_evo_buckets', 'tpp_rcmd_bucket_id', 'scenario',
             'pdp_npi', 'tt', 'spreadType', 'srcSns', 'bizType', 'social_params',
             'aff_fcid', 'aff_fsk', 'aff_platform', 'aff_trace_key', 'shareId',
-            'platform', 'businessType', 'terminal_id', 'afSmartRedirect', 'sk'
+            'platform', 'businessType', 'terminal_id', 'afSmartRedirect', 'sk',
+            'gbraid'
         ],
         allow: ['sku_id', 'pdp_ext_f']
     },
@@ -146,9 +154,11 @@ const $kurlc_rules = [
         rules: [
             'sourceid', 'client', 'aqs', 'sxsrf', 'uact', 'ved', 'iflsig', 'source',
             'ei', 'oq', 'gs_lcp', 'sclient', 'bih', 'biw', 'sa', 'dpr', 'rlz',
-            'gs_lp', 'sca_esv', 'si', 'gs_l'
+            'gs_lp', 'sca_esv', 'si', 'gs_l', 'gs_lcrp'
         ],
-        amp: /www\.google\.(?:.*)\/amp\/s\/(.*)/gim,
+        amp: {
+            regex: /www\.google\.(?:.*)\/amp\/s\/(.*)/gim,
+        },
         redirect: 'url'
     },
     {
@@ -199,7 +209,10 @@ const $kurlc_rules = [
     {
         name: 'gog.com',
         match: /www.gog.com/i,
-        rules: ['at_gd']
+        rules: [
+            'at_gd', 'rec_scenario_id', 'rec_sub_source_id', 'rec_item_id',
+            'vds_id', 'prod_id', 'rec_source'
+        ]
     },
     {
         name: 'tiktok.com',
@@ -251,7 +264,8 @@ const $kurlc_rules = [
             'trkInfo', 'originalReferer', 'upsellOrderOrigin',
             'upsellTrk', 'upsellTrackingId', 'src', 'trackingId',
             'midToken', 'midSig', 'trkEmail', 'eid'
-        ]
+        ],
+        allow: [ 'otpToken' ]
     },
     {
         name: 'indeed.com',
@@ -260,8 +274,8 @@ const $kurlc_rules = [
     },
     {
         name: 'discord.com',
-        match: /.*.discord.com/i,
-        rules: ['source']
+        match: /(?:.*\.)?discord\.com/i,
+        rules: ['source' , 'ref']
     },
     {
         name: 'medium.com',
@@ -340,6 +354,12 @@ const $kurlc_rules = [
         redirect: 'url'
     },
     {
+        name: 'steamcommunity.com/linkfilter',
+        match: /steamcommunity.com\/linkfilter/i,
+        redirect: 'u',
+        match_href: true
+    },
+    {
         name: 'microsoft.com',
         match: /microsoft.com/i,
         rules: ['refd', 'icid']
@@ -352,7 +372,7 @@ const $kurlc_rules = [
     {
         name: 'instagram.com',
         match: /instagram.com/i,
-        rules: ['igshid', 'source'],
+        rules: ['igshid', 'igsh', 'source'],
         redirect: 'u'
     },
     {
@@ -436,12 +456,20 @@ const $kurlc_rules = [
         name: 'ampproject.org',
         match: /cdn.ampproject.org/i,
         rules: ['amp_gsa', 'amp_js_v', 'usqp', 'outputType'],
-        amp: /cdn\.ampproject\.org\/v\/s\/(.*)\#(aoh|csi|referrer|amp)/gim
+        amp: {
+            regex: /cdn\.ampproject\.org\/v\/s\/(.*)\#(aoh|csi|referrer|amp)/gim
+        }
     },
     {
         name: 'nbcnews.com',
         match: /nbcnews.com/i,
-        rules: ['fbclid']
+        rules: ['fbclid'],
+        amp: {
+            replace: {
+                text: 'www.nbcnews.com/news/amp/',
+                with: 'www.nbcnews.com/news/'
+            }
+        }
     },
     {
         name: 'countdown.co.nz',
@@ -451,7 +479,7 @@ const $kurlc_rules = [
     {
         name: 'etsy.com',
         match: /www.etsy.com/i,
-        rules: ['click_key', 'click_sum', 'rec_type', 'ref', 'frs', 'sts']
+        rules: ['click_key', 'click_sum', 'rec_type', 'ref', 'frs', 'sts', 'dd_referrer']
     },
     {
         name: 'wattpad.com',
@@ -521,7 +549,9 @@ const $kurlc_rules = [
     {
         name: 'anrdoezrs.net',
         match: /anrdoezrs.net/i,
-        amp: /(?:.*)\/links\/(?:.*)\/type\/dlg\/sid\/\[subid_value\]\/(.*)/gi
+        amp: {
+            regex: /(?:.*)\/links\/(?:.*)\/type\/dlg\/sid\/\[subid_value\]\/(.*)/gi
+        }
     },
     {
         name: 'emjcd.com',
@@ -544,7 +574,7 @@ const $kurlc_rules = [
     {
         name: 'tvguide.com',
         match: /^www.tvguide.com/i,
-        amp: /(.*)\#link=/i
+        amp: { regex: /(.*)\#link=/i }
     },
     {
         name: 'ranker.com',
@@ -613,7 +643,7 @@ const $kurlc_rules = [
     {
         name: 'awstrack.me',
         match: /^.*awstrack.me/i,
-        amp: /awstrack.me\/L0\/(.*)/
+        amp: { regex: /awstrack.me\/L0\/(.*)/ }
     },
     {
         name: 'express.co.uk',
@@ -699,7 +729,13 @@ const $kurlc_rules = [
     {
         name: 'cnn.com',
         match: /.*.cnn.com/i,
-        rules: ['hpt'],
+        rules: ['hpt', 'iid'],
+        amp: {
+            replace: {
+                text: 'amp.cnn.com/cnn/',
+                with: 'www.cnn.com/'
+            }
+        },
         exclude: [
             /e.newsletters.cnn.com/gi,
         ]
@@ -707,7 +743,12 @@ const $kurlc_rules = [
     {
         name: 'amp.scmp.com',
         match: /amp\.scmp\.com/i,
-        amp: /amp\.(.*)/i
+        amp: {
+            replace: {
+                text: 'amp.scmp.com',
+                with: 'scmp.com'
+            }
+        }
     },
     {
         name: 'justwatch.com',
@@ -734,7 +775,7 @@ const $kurlc_rules = [
     {
         name: 'syteapi.com',
         match: /syteapi\.com/i,
-        decode: { param: 'url' }
+        decode: { param: 'url', encoding: 'base64' }
     },
     {
         name: 'castorama.fr',
@@ -862,7 +903,12 @@ const $kurlc_rules = [
     {
         name: 'amp.dw.com',
         match: /amp.dw.com/i,
-        amp: /amp\.(.*)/i
+        amp: {
+            replace: {
+                text: 'amp.dw.com',
+                with: 'dw.com'
+            }
+        }
     },
     {
         name: 'joybuggy.com',
@@ -898,7 +944,12 @@ const $kurlc_rules = [
     {
         name: 'knowyourmeme.com',
         match: /amp.knowyourmeme.com/i,
-        amp: /(?:\/\/|^)amp\.(.*)$/gim
+        amp: {
+            replace: {
+                text: 'amp.knowyourmeme.com',
+                with: 'knowyourmeme.com'
+            }
+        }
     },
     {
         name: 'ojrq.net',
@@ -908,7 +959,7 @@ const $kurlc_rules = [
     {
         name: 'click.pstmrk.it',
         match: /click.pstmrk.it/i,
-        amp: /click\.pstmrk\.it\/(?:[a-zA-Z0-9]){1,2}\/(.*?)\//gim,
+        amp: { regex: /click\.pstmrk\.it\/(?:[a-zA-Z0-9]){1,2}\/(.*?)\//gim }
     },
     {
         name: 'track.roeye.co.nz',
@@ -923,7 +974,13 @@ const $kurlc_rules = [
     {
         name: 'cbsnews.com',
         match: /www.cbsnews.com/i,
-        rules: ['ftag', 'intcid']
+        rules: ['ftag', 'intcid'],
+        amp: {
+            replace: {
+                text: 'cbsnews.com/amp/',
+                with: 'cbsnews.com/'
+            }
+        }
     },
     {
         name: 'jobs.venturebeat.com',
@@ -1031,8 +1088,396 @@ const $kurlc_rules = [
     {
         name: 'urldefense.proofpoint.com',
         match: /urldefense.proofpoint.com/i,
-        decode: { param: 'u', encoding: 'url2' }
+        decode: {
+            param: 'u',
+            handler: 'urldefense.proofpoint.com'
+        }
+    },
+    {
+        name: 'curseforge.com',
+        match: /www.curseforge.com/i,
+        redirect: 'remoteurl'
+    },
+    {
+        name: 's.pemsrv.com',
+        match: /s.pemsrv.com/i,
+        rules: [
+            'cat', 'idzone', 'type', 'sub', 'block',
+            'el', 'tags', 'cookieconsent', 'scr_info'
+        ],
+        redirect: 'p'
+    },
+    {
+        name: 'chess.com',
+        match: /www.chess.com/i,
+        rules: ['c']
+    },
+    {
+        name: 'porndude.link',
+        match: /porndude.link/i,
+        rules: ['ref']
+    },
+    {
+        name: 'xvideos.com',
+        match: /xvideos.com/i,
+        rules: ['sxcaf']
+    },
+    {
+        name: 'xvideos.red',
+        match: /xvideos.red/i,
+        rules: ['sxcaf', 'pmsc', 'pmln']
+    },
+    {
+        name: 'xhamster.com',
+        match: /xhamster.com/i,
+        rules: ['source']
+    },
+    {
+        name: 'patchbot.io',
+        match: /patchbot.io/i,
+        decode: {
+            targetPath: true,
+            handler: 'patchbot.io'
+        }
+    },
+    {
+        name: 'milkrun.com',
+        match: /milkrun.com/i,
+        rules: [
+            '_branch_match_id',
+            '_branch_referrer'
+        ]
+    },
+    {
+        name: 'gog.salesmanago.com',
+        match: /gog.salesmanago.com/i,
+        rules: [
+            'smclient', 'smconv', 'smlid'
+        ],
+        redirect: 'url'
+    },
+    {
+        name: 'dailymail.co.uk',
+        match: /dailymail.co.uk/i,
+        rules: ['reg_source', 'ito']
+    },
+    {
+        name: 'stardockentertainment.info',
+        match: /www.stardockentertainment.info/i,
+        decode: {
+            targetPath: true,
+            handler: 'stardockentertainment.info',
+        }
+    },
+    {
+        name: 'steam.gs',
+        match: /steam.gs/i,
+        decode: {
+            targetPath: true,
+            handler: 'steam.gs'
+        }
+    },
+    {
+        name: '0yxjo.mjt.lu',
+        match: /0yxjo.mjt.lu/i,
+        decode: {
+            targetPath: true,
+            handler: '0yxjo.mjt.lu',
+        }
+    },
+    {
+        name: 'click.redditmail.com',
+        match: /click.redditmail.com/i,
+        decode: {
+            targetPath: true,
+            handler: 'click.redditmail.com',
+        }
+    },
+    {
+        name: 'deals.dominos.co.nz',
+        match: /deals.dominos.co.nz/i,
+        decode:{
+            targetPath: true,
+            handler: 'deals.dominos.co.nz'
+        }
+    },
+    {
+        name: 'hashnode.com',
+        match: /(?:.*\.)?hashnode\.com/i,
+        rules: ['source']
+    },
+    {
+        name: 's.amazon-adsystem.com',
+        match: /s.amazon-adsystem.com/i,
+        rules: ['dsig', 'd', 'ex-fch', 'ex-fargs', 'cb'],
+        redirect: 'rd'
+    },
+    {
+        name: 'hypable.com',
+        match: /www.hypable.com/i,
+        amp: { replace: { text: /amp\/$/gi } }
+    },
+    {
+        name: 'theguardian.com',
+        match: /theguardian.com/i,
+        amp: {
+            replace: {
+                text: 'amp.theguardian.com',
+                with: 'theguardian.com'
+            }
+        },
+        rules: ['INTCMP', 'acquisitionData', 'REFPVID']
+    },
+    {
+        name: 'indiatoday.in',
+        match: /www.indiatoday.in/i,
+        amp: {
+            replace: {
+                text: 'www.indiatoday.in/amp/',
+                with: 'www.indiatoday.in/'
+            }
+        }
+    },
+    {
+        name: 'seek.co.nz',
+        match: /www.seek.co.nz/i,
+        rules: ['tracking', 'sc_trk']
+    },
+    {
+        name: 'seekvolunteer.co.nz',
+        match: /seekvolunteer.co.nz/i,
+        rules: ['tracking', 'sc_trk']
+    },
+    {
+        name: 'seekbusiness.com.au',
+        match: /www.seekbusiness.com.au/i,
+        rules: ['tracking', 'cid']
+    },
+    {
+        name: 'garageclothing.com',
+        match: /www.garageclothing.com/i,
+        rules: ['syte_ref', 'site_ref']
+    },
+    {
+        name: 'urbandictionary.com',
+        match: /urbandictionary.com/i,
+        rules: ['amp']
+    },
+    {
+        name: 'norml.org',
+        match: /norml.org/i,
+        rules: ['amp']
+    },
+    {
+        name: 'nbcconnecticut.com',
+        match: /www.nbcconnecticut.com/i,
+        rules: ['amp']
+    },
+    {
+        name: 'pbs.org',
+        match: /www.pbs.org/i,
+        amp: {
+            replace: {
+                text: 'pbs.org/newshour/amp/',
+                with: 'pbs.org/newshour/'
+            }
+        }
+    },
+    {
+        name: 'm.thewire.in',
+        match: /m.thewire.in/i,
+        amp: {
+            replace: {
+                text: 'm.thewire.in/article/',
+                with: 'thewire.in/'
+            },
+            sliceTrailing: '/amp'
+        }
+    },
+    {
+        name: 'ladysmithchronicle.com',
+        match: /www.ladysmithchronicle.com/i,
+        rules: ['ref']
+    },
+    {
+        name: 'businesstoday.in',
+        match: /www.businesstoday.in/i,
+        amp: {
+            replace: {
+                text: 'www.businesstoday.in/amp/markets/',
+                with: 'www.businesstoday.in/markets/'
+            }
+        }
+    },
+    {
+        name: 'turnto10.com',
+        match: /turnto10.com/i,
+        amp: {
+            replace: {
+                text: 'turnto10.com/amp/',
+                with: 'turnto10.com/'
+            }
+        }
+    },
+    {
+        name: 'gadgets360.com',
+        match: /www.gadgets360.com/i,
+        amp: {
+            sliceTrailing: '/amp'
+        }
+    },
+    {
+        name: 'm10news.com',
+        match: /m10news.com/i,
+        rules: ['amp']
+    },
+    {
+        name: 'elprogreso.es',
+        match: /www.elprogreso.es/i,
+        amp: {
+            replace: {
+                text: '.amp.html',
+                with: '.html'
+            }
+        }
+    },
+    {
+        name: 'thenewsminute.com',
+        match: /www.thenewsminute.com/i,
+        amp: {
+            replace: {
+                text: 'www.thenewsminute.com/amp/story/',
+                with: 'www.thenewsminute.com/'
+            }
+        }
+    },
+    {
+        name: 'mirror.co.uk',
+        match: /www.mirror.co.uk/i,
+        amp: {
+            sliceTrailing: '.amp'
+        }
+    },
+    {
+        name: 'libretro.com',
+        match: /www.libretro.com/i,
+        rules: ['amp']
+    },
+    {
+        name: 'the-sun.com',
+        match: /www.the-sun.com/i,
+        amp: {
+            sliceTrailing: 'amp/'
+        }
+    },
+    {
+        name: 'bostonherald.com',
+        match: /bostonherald.com/i,
+        rules: ['g2i_source', 'g2i_medium', 'g2i_campaign'],
+        amp: {
+            sliceTrailing: 'amp/'
+        }
+    },
+    {
+        name: 'playshoptitans.com',
+        match: /playshoptitans.com/i,
+        rules: ['af_ad', 'pid', 'source_caller', 'shortlink', 'c']
+    },
+    {
+        name: 'news.com.au',
+        match: /www.news.com.au/i,
+        rules: ['sourceCode']
+    },
+    {
+        name: 'wvva.com',
+        match: /www.wvva.com/i,
+        rules: ['outputType']
+    },
+    {
+        name: 'realestate.com.au',
+        match: /www.realestate.com.au/i,
+        rules: [
+            'campaignType', 'campaignChannel', 'campaignName',
+            'campaignContent', 'campaignSource', 'campaignPlacement',
+            'sourcePage', 'sourceElement', 'cid'
+        ]
+    },
+    {
+        name: 'redirectingat.com',
+        match: /redirectingat.com/i,
+        redirect: 'url',
+        rules: ['id', 'xcust', 'xs'],
+        decode: { handler: 'redirectingat.com', targetPath: true }
+    },
+    {
+        name: 'map.sewoon.org',
+        match: /map.sewoon.org/i,
+        rules: ['cid']
+    },
+    {
+        name: 'vi-control.net',
+        match: /[&?]source=https:\/\/vi-control\.net\/community$/,
+        match_href: true,
+        rules: ['source']
+    },
+    {
+        name: 'rosequake.com',
+        match: /www.rosequake.com/i,
+        rules: ['edmID', 'linkID', 'userID', 'em', 'taskItemID'],
+        redirect: 'to'
+    },
+    {
+        name: 'rekrute.com',
+        match: /www.rekrute.com/i,
+        rules: ['clear'],
+        // Malicious domain. This rule will bypass the XSS attempt
+        redirect: 'keyword'
+    },
+    {
+        name: 'go.skimresources.com',
+        match: /go.skimresources.com/i,
+        rules: ['id', 'xs', 'xcust'],
+        redirect: 'url'
+    },
+    {
+        name: 'khnum-ezi.com',
+        match: /khnum-ezi.com/i,
+        rules: [
+            'browserWidth', 'browserHeight', 'iframeDetected',
+            'webdriverDetected', 'gpu', 'timezone', 'visitid',
+            'type', 'timezoneName'
+        ]
+    },
+    {
+        name: 'theatlantic.com',
+        match: /(?:www|accounts)\.theatlantic\.com/i,
+        rules: ['source', 'referral']
+    },
+    {
+        name: 'rumble.com',
+        match: /rumble.com/i,
+        rules: ['e9s']
+    },
+    {
+        name: 'cointiply.com',
+        match: /cointiply.com/i,
+        rules: ['source_cta']
+    },
+    {
+        name: 'dev.to',
+        match: /dev.to/,
+        rules: ['t', 's', 'u'],
+        redirect: 'u'
+    },
+    {
+        name: 'milda-clq.com',
+        // Linked to (khnum-ezi.com) as they are the same
+        match: /milda-clq.com/,
+        rules: [
+            'visitid', 'type', 'browserWidth',
+            'browserHeight', 'webdriverDetected',
+            'timezone', 'gpu', 'iframeDetected',
+            'timezoneName'
+        ]
     }
-];
-
-module.exports = $kurlc_rules;
+]

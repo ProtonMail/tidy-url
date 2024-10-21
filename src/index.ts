@@ -1,32 +1,29 @@
+import { decodeURL, getLinkDiff, isJSON, urlHasParams, validateURL } from './utils';
 import { IRule, IData, EEncoding } from './interface';
+import { handlers } from './handlers';
+import { TidyConfig } from './config';
 
 const $github = 'https://github.com/DrKain/tidy-url';
 
 export class TidyCleaner {
     public rules: IRule[] = [];
-    public silent = true;
 
     /**
-     * There's a whole number of reasons why you don't want AMP links,
-     * too many to fit in this description.
-     * See this link for more info: https://redd.it/ehrq3z
+     * Stores config options for this cleaner. If you would like to
+     * use multiple configs simply create a new instance
      */
-    public allow_amp = false;
+    public config: TidyConfig = new TidyConfig();
+
     /**
-     * Used to auto-redirect to a different URL based on the parameter.
-     * This is used to skip websites that track external links.
+     * Contains all logged information from the last clean, even if `config.silent` was `true`.
+     * This will be reset when a new URL is cleaned. This is for debugging and not to be relied upon
      */
-    public allow_redirects = true;
+    public loglines: { type: string; message: string }[] = [];
 
-    private atob(data: string): string {
-        if (typeof atob === 'undefined') {
-            this.log('atob not supported, using Buffer');
-            return Buffer.from(data, 'base64').toString('binary');
-        } else {
-            return atob(data);
-        }
-    }
-
+    /**
+     * The full list of all rules with default value
+     * that are not used in the main rules file to save space.
+     */
     get expandedRules() {
         return this.rules.map((rule) => {
             return Object.assign(
@@ -44,11 +41,13 @@ export class TidyCleaner {
     }
 
     constructor() {
-        // Load the rules
         try {
+            this.syncDeprecatedToConfig();
+            // Load the rules
             this.rules = require('../data/rules.js');
         } catch (error) {
-            this.log(`${error}`);
+            // If this fails nothing can be cleaned
+            this.log(`${error}`, 'error');
             this.rules = [];
         }
     }
@@ -57,30 +56,9 @@ export class TidyCleaner {
      * Only log to the console if debug is enabled
      * @param str Message
      */
-    private log(str: string) {
-        if (!this.silent) console.log(str);
-    }
-
-    /**
-     * Determine if the input is a valid URL or not
-     * @param url Any URL
-     * @returns true/false
-     */
-    public validate(url: string): boolean {
-        try {
-            const pass = ['http:', 'https:'];
-            const test = new URL(url);
-            const prot = test.protocol.toLowerCase();
-
-            if (pass.includes(prot) === false) {
-                throw Error('Not acceptable protocol: ' + prot);
-            }
-
-            return true;
-        } catch (error) {
-            this.log(`${error}`);
-            return false;
-        }
+    private log(str: string, type: 'all' | 'error' | 'info' | 'warn' | 'debug') {
+        this.loglines.push({ type, message: str });
+        if (this.config.silent !== false) console.log(`[${type}] ${str}`);
     }
 
     /**
@@ -92,59 +70,15 @@ export class TidyCleaner {
         return original.protocol + '//' + original.host + original.pathname + original.search + original.hash;
     }
 
-    public hasParams(url: string): boolean {
-        return new URL(url).searchParams.toString().length > 0;
-    }
+    /**
+     * This lets users know when they are using the deprecated variables that will
+     * be removed in a few updates.
+     */
+    private syncDeprecatedToConfig() {}
 
-    private isJSON(data: string) {
-        try {
-            JSON.parse(data);
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-
-    private getDiff(data: IData, url: string) {
-        return {
-            is_new_host: new URL(url).host !== new URL(data.url).host,
-            difference: url.length - data.url.length,
-            reduction: +(100 - (data.url.length / url.length) * 100).toFixed(2)
-        };
-    }
-
-    private decode(str: string, encoding: EEncoding = EEncoding.base64): string {
-        let decoded = str;
-
-        // Simple base64 decoding
-        if (encoding === EEncoding.base64) {
-            decoded = this.atob(str);
-        }
-
-        // Decode uri when used in URL parameters
-        if (encoding === EEncoding.url) {
-            decoded = decodeURI(str);
-        }
-
-        // This is more of a special case but it may help other rules. See issue #72
-        if (encoding === EEncoding.url2) {
-            decoded = decodeURIComponent(str.replace(/-/g, '%')).replace(/_/g, '/').replace(/%2F/g, '/');
-        }
-
-        // hex decode, not the best method but it works.
-        // Open a PR if you want to improve it
-        if (encoding === EEncoding.hex) {
-            let hex = str.toString();
-            let out = '';
-
-            for (var i = 0; i < hex.length; i += 2) {
-                out += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-            }
-
-            decoded = out;
-        }
-
-        return decoded;
+    /** @deprecated Import `validateURL` instead */
+    public validate(url: string): boolean {
+        return validateURL(url);
     }
 
     /**
@@ -152,7 +86,11 @@ export class TidyCleaner {
      * @param _url Any URL
      * @returns IData
      */
-    public clean(_url: string, allow_reclean = true): IData {
+    public clean(_url: string, allowReclean = true): IData {
+        if (!allowReclean) this.loglines = [];
+
+        this.syncDeprecatedToConfig();
+
         // Default values
         const data: IData = {
             url: _url,
@@ -162,21 +100,26 @@ export class TidyCleaner {
                 difference: 0,
                 replace: [],
                 removed: [],
+                handler: null,
                 match: [],
                 decoded: null,
                 is_new_host: false,
-                full_clean: false
+                isNewHost: false,
+                full_clean: false,
+                fullClean: false
             }
         };
 
         // Make sure the URL is valid before we try to clean it
-        if (!this.validate(_url)) {
-            this.log('An invalid URL was supplied');
+        if (!validateURL(_url)) {
+            if (_url !== 'undefined' && _url.length > 0) {
+                this.log('Invalid URL: ' + _url, 'error');
+            }
             return data;
         }
 
         // If there's no params, we can skip the rest of the process
-        if (this.allow_amp && this.hasParams(_url) === false) {
+        if (this.config.allowAMP && urlHasParams(_url) === false) {
             data.url = data.info.original;
             return data;
         }
@@ -228,9 +171,9 @@ export class TidyCleaner {
 
         // Check if the match has any amp rules, if not we can redirect
         const hasAmpRule = data.info.match.find((item) => item.amp);
-        if (this.allow_amp === true && hasAmpRule === undefined) {
+        if (this.config.allowAMP === true && hasAmpRule === undefined) {
             // Make sure there are no parameters before resetting
-            if (!this.hasParams(url)) {
+            if (!urlHasParams(url)) {
                 data.url = data.info.original;
                 return data;
             }
@@ -254,39 +197,80 @@ export class TidyCleaner {
         data.url = original.protocol + '//' + original.host + pathname + original.search + original.hash;
 
         // Redirect if the redirect parameter exists
-        if (this.allow_redirects) {
+        if (this.config.allowRedirects) {
             for (const rule of data.info.match) {
-                if (rule.redirect.length && cleaner_ci.has(rule.redirect)) {
-                    if (this.validate(cleaner_ci.get(rule.redirect) as string)) {
-                        data.url = `${cleaner_ci.get(rule.redirect)}` + original.hash;
-                        if (allow_reclean) data.url = this.clean(data.url, false).url;
+                if (!rule.redirect) continue;
+
+                const target = rule.redirect;
+                let value = cleaner_ci.get(target) as string;
+
+                // Sometimes the parameter is encoded
+                const isEncoded = decodeURL(value, EEncoding.urlc);
+                if (isEncoded !== value && validateURL(isEncoded)) value = isEncoded;
+
+                if (target.length && cleaner_ci.has(target)) {
+                    if (validateURL(value)) {
+                        data.url = `${value}` + original.hash;
+                        if (allowReclean) data.url = this.clean(data.url, false).url;
+                    } else {
+                        this.log('Failed to redirect: ' + value, 'error');
                     }
                 }
             }
         }
 
         // De-amp the URL
-        if (this.allow_amp === false) {
+        if (this.config.allowAMP === false) {
             for (const rule of data.info.match) {
                 try {
-                    // Ensure the amp rule matches
-                    if (rule.amp && data.url.match(rule.amp)) {
-                        // Reset the lastIndex
-                        rule.amp.lastIndex = 0;
-                        const result = rule.amp.exec(data.url);
-                        if (result && result[1]) {
+                    // Ensure at least one rule exists
+                    if (rule.amp && (rule.amp.regex || rule.amp.replace || rule.amp.sliceTrailing)) {
+                        // Handle replacing text in the URL
+                        if (rule.amp.replace) {
+                            data.info.handler = rule.name;
+                            this.log('AMP Replace: ' + rule.amp.replace.text, 'info');
+                            const toReplace = rule.amp.replace.text;
+                            const toReplaceWith = rule.amp.replace.with ?? '';
+                            data.url = data.url.replace(toReplace, toReplaceWith);
+                        }
+
+                        // Use RegEx capture groups
+                        if (rule.amp.regex && data.url.match(rule.amp.regex)) {
+                            data.info.handler = rule.name;
+                            this.log('AMP RegEx: ' + rule.amp.regex, 'info');
+
+                            rule.amp.regex.lastIndex = 0;
+                            const result = rule.amp.regex.exec(data.url);
+
                             // If there is a result, replace the URL
-                            let target = decodeURIComponent(result[1]);
-                            if (!target.startsWith('https')) target = 'https://' + target;
-                            if (this.validate(target)) {
-                                data.url = allow_reclean ? this.clean(target, false).url : target;
-                                if (data.url.endsWith('%3Famp')) data.url = data.url.slice(0, -6);
-                                if (data.url.endsWith('amp/')) data.url = data.url.slice(0, -4);
+                            if (result && result[1]) {
+                                let target = decodeURIComponent(result[1]);
+                                // Add the protocol when it's missing
+                                if (!target.startsWith('https')) target = 'https://' + target;
+                                // Valiate the URL to make sure it's still good
+                                if (validateURL(target)) {
+                                    // Sometimes the result is another domain that has its own tracking parameters
+                                    // So a re-clean can be useful.
+                                    data.url = allowReclean ? this.clean(target, false).url : target;
+                                }
+                            } else {
+                                this.log('AMP RegEx failed to get a result for ' + rule.name, 'error');
                             }
                         }
+
+                        // TODO: Apply to existing rules
+                        if (rule.amp.sliceTrailing) {
+                            if (data.url.endsWith(rule.amp.sliceTrailing)) {
+                                data.url = data.url.slice(0, -rule.amp.sliceTrailing.length);
+                            }
+                        }
+
+                        // Remove trailing amp/ or /amp
+                        if (data.url.endsWith('%3Famp')) data.url = data.url.slice(0, -6);
+                        if (data.url.endsWith('amp/')) data.url = data.url.slice(0, -4);
                     }
                 } catch (error) {
-                    this.log(`${error}`);
+                    this.log(`${error}`, 'error');
                 }
             }
         }
@@ -294,34 +278,88 @@ export class TidyCleaner {
         // Decode handler
         for (const rule of data.info.match) {
             try {
+                this.log(`Processing decode rule (${rule.name})`, 'debug');
                 if (!rule.decode) continue;
                 // Make sure the target parameter exists
-                if (!cleaner.has(rule.decode.param)) continue;
-                // These will always be clickjacking links, so use the allow_redirects rule
-                if (!this.allow_redirects) continue;
+                if (!cleaner.has(rule.decode.param) && rule.decode.targetPath !== true) continue;
+                // These will almost always be clickjacking links, so use the allowRedirects rule if enabled
+                if (!this.config.allowRedirects) continue;
+                // Don't process the decode handler if it's disabled
+                if (this.config.allowCustomHandlers === false && rule.decode.handler) continue;
                 // Decode the string using selected encoding
-
                 const encoding = rule.decode.encoding || 'base64';
-                const decoded = this.decode(cleaner.get(rule.decode.param) as string, encoding);
+                // Sometimes the website path is what we need to decode
+                let lastPath = pathname.split('/').pop();
+                // This will be null if the param doesn't exist
+                const param = cleaner.get(rule.decode.param);
+                // Use a default string
+                let encodedString: string = '';
+
+                if (lastPath === undefined) lastPath = '';
+
+                // Decide what we are decoding
+                if (param === null) encodedString = lastPath;
+                else if (param) encodedString = param;
+                else continue;
+
+                if (typeof encodedString !== 'string') {
+                    this.log(`Expected ${encodedString} to be a string`, 'error');
+                    continue;
+                }
+
+                let decoded = decodeURL(encodedString, encoding);
                 let target = '';
+                let recleanData = null;
 
                 // If the response is JSON, decode and look for a key
-                if (this.isJSON(decoded)) {
+                if (isJSON(decoded)) {
                     const json = JSON.parse(decoded);
                     target = json[rule.decode.lookFor];
                     // Add to the info response
                     data.info.decoded = json;
+                } else if (this.config.allowCustomHandlers === true && rule.decode.handler) {
+                    // Run custom URL handlers for websites
+                    const handler = handlers[rule.decode.handler];
+
+                    if (typeof handler === 'undefined') {
+                        this.log('Handler was not found for ' + rule.decode.handler, 'error');
+                    }
+
+                    if (rule.decode.handler && handler) {
+                        data.info.handler = rule.decode.handler;
+
+                        // Pass the handler a bunch of information it can use
+                        const result = handler.exec(data.url, {
+                            decoded,
+                            lastPath,
+                            urlParams: new URL(data.url).searchParams,
+                            fullPath: pathname,
+                            originalURL: data.url
+                        });
+
+                        // If the handler threw an error or the URL is invalid
+                        if (result.error || validateURL(result.url) === false || result.url.trim() === '') {
+                            if (result.error) this.log(result.error, 'error');
+                            else this.log('Unknown error with decode handler, empty response returned', 'error');
+                        }
+
+                        // result.url will always by the original URL when an error is thrown
+                        recleanData = result.url;
+                    }
                 } else {
                     // If the response is a string we can continue
                     target = decoded;
                 }
 
+                // Re-clean the URL after handler result
+                target = allowReclean ? this.clean(recleanData ?? target, false).url : recleanData ?? target;
+
                 // If the key we want exists and is a valid url then update the data url
-                if (target && this.validate(target)) {
+                if (target && target !== '' && validateURL(target)) {
                     data.url = `${target}` + original.hash;
                 }
             } catch (error) {
-                this.log(`${error}`);
+                this.log(`${error}`, 'error');
             }
         }
 
@@ -336,15 +374,16 @@ export class TidyCleaner {
             if (rule.rev) data.url = data.url.replace(/=(?=&|$)/gm, '');
         }
 
-        const diff = this.getDiff(data, url);
+        const diff = getLinkDiff(data.url, url);
         data.info = Object.assign(data.info, diff);
 
         // If the link is longer then we have an issue
         if (data.info.reduction < 0) {
-            this.log(`Reduction is ${data.info.reduction}. Please report this link on GitHub: ${$github}/issues`);
+            this.log(`Reduction is ${data.info.reduction}. Please report this link on GitHub: ${$github}/issues\n${data.info.original}`, 'error');
             data.url = data.info.original;
         }
 
+        data.info.fullClean = true;
         data.info.full_clean = true;
 
         // Reset the original URL if there is no change, just to be safe
