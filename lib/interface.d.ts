@@ -22,14 +22,43 @@ export interface IRule {
      * too many to fit in this description.
      * See this link for more info: https://redd.it/ehrq3z
      */
-    amp: RegExp | null;
+    amp: {
+        /**
+         * Standard AMP handling using RegExp capture groups.
+         */
+        regex?: RegExp;
+        /**
+         * Replace text in the URL. If `with` is used the text will be
+         * replaced with what you set instead of removing it.
+         */
+        replace?: {
+            /** The text or RegEx you want to replace */
+            text: string | RegExp;
+            /** The text you want to replace it with. Optional */
+            with?: string;
+            /** Currently has no effect, this will change in another update */
+            target?: 'host' | 'full';
+        };
+        /**
+         * Slice off a trailing string, these are usually "/amp" or "amp/"
+         * This setting should help prevent breaking any pages.
+         */
+        sliceTrailing?: string;
+    };
     /**
-     * @experimental
-     * Used to decode a base64 parameter, then redirect based on the returned object
+     * Used to decode a parameter or path, then redirect based on the returned object
      */
     decode: {
-        param: string;
-        lookFor: string;
+        /** Target parameter */
+        param?: string;
+        /** If the decoded response is JSON, this will look for a certain key */
+        lookFor?: string;
+        /** Decide what encoding to use */
+        encoding?: EEncoding;
+        /** Target the full path instead of a parameter */
+        targetPath?: boolean;
+        /** Use a custom handler found in handlers.ts */
+        handler?: string;
     };
     /** Remove empty values */
     rev: boolean;
@@ -37,6 +66,7 @@ export interface IRule {
 export interface IData {
     /** Cleaned URL */
     url: string;
+    /** Some debugging information about what was changed */
     info: {
         /** Original URL before cleaning */
         original: string;
@@ -51,15 +81,22 @@ export interface IData {
             key: string;
             value: string;
         }[];
+        /** Handler used */
+        handler: string | null;
         /** Rules matched */
         match: any[];
         /** The decoded object from the decode parameter (if it exists) */
         decoded: {
             [key: string]: any;
         } | null;
-        /** If the cleaned URL is a different host */
+        /** @deprecated Please use `isNewHost`. This will be removed in the next major update. */
         is_new_host: boolean;
+        /** If the compared links have different hosts */
+        isNewHost: boolean;
+        /** @deprecated Please use `fullClean`. This will be removed in the next major update. */
         full_clean: boolean;
+        /** If the code reached the end of the clean without error */
+        fullClean: boolean;
     };
 }
 export declare enum EEncoding {
@@ -67,7 +104,63 @@ export declare enum EEncoding {
     base32 = "base32",
     base45 = "base45",
     url = "url",
-    url2 = "url2",
+    urlc = "urlc",
     binary = "binary",
     hex = "hex"
+}
+export interface IConfig {
+    /**
+     * There's a whole number of reasons why you don't want AMP links,
+     * too many to fit in this description.
+     * See this link for more info: https://redd.it/ehrq3z
+     */
+    allowAMP: boolean;
+    /**
+     * Custom handlers for specific websites that use tricky URLs
+     * that make it harder to "clean"
+     */
+    allowCustomHandlers: boolean;
+    /**
+     * Used to auto-redirect to a different URL based on the parameter.
+     * This is used to skip websites that track external links.
+     */
+    allowRedirects: boolean;
+    /** Nothing logged to console */
+    silent: boolean;
+}
+export interface IHandlerArgs {
+    /** The attemp made at decoding the string, may be invalid */
+    decoded: string;
+    /** The last part of the URL path, split by a forward slash */
+    lastPath: string;
+    /** The full URL path excluding the host */
+    fullPath: string;
+    /** A fresh copy of URLSearchParams */
+    urlParams: URLSearchParams;
+    /** The original URL */
+    readonly originalURL: string;
+}
+export interface IHandler {
+    readonly note?: string;
+    exec: (
+    /** The original URL */
+    str: string, 
+    /** Various args that can be used when writing a handler */
+    args: IHandlerArgs) => {
+        /** The original URL */
+        url: string;
+        error?: any;
+    };
+}
+export interface ILinkDiff {
+    /** @deprecated Please use isNewHost */
+    is_new_host: boolean;
+    /** If the compared links have different hosts */
+    isNewHost: boolean;
+    difference: number;
+    reduction: number;
+}
+export interface IGuessEncoding {
+    base64: boolean;
+    isJSON: boolean;
 }
