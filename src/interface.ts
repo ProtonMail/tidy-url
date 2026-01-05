@@ -99,7 +99,7 @@ export interface IData {
         /** If the code reached the end of the clean without error */
         fullClean: boolean;
         /** Parameters that were allowed (overrides other rules) */
-        allowed: string[];
+        allowed: Set<string>;
     };
 }
 
