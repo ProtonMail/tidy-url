@@ -44,7 +44,7 @@ module.exports = [
             'mtm_campaign', 'mtm_keyword', 'mtm_kwd', 'mtm_source', 'mtm_medium',
             'mtm_content', 'mtm_cid', 'mtm_group', 'mtm_placement', 
             // Oracle Eloqua
-            'elqTrackId', 'elq', 'elqaid', 'elqat', 'elqCampaignId', 'elqTrack',
+            'elqTrackId', 'elq', 'elqak', 'elqaid', 'elqat', 'elqCampaignId', 'elqTrack',
             // MailChimp
             'mc_cid', 'mc_eid',
             // Other              
@@ -1479,5 +1479,10 @@ module.exports = [
             'timezone', 'gpu', 'iframeDetected',
             'timezoneName'
         ]
-    }
+    },
+    {
+        name: 'app.message.asce',
+        match: /.*.app\.message\.asce\.org/i,
+        allow: ['elq']
+    },
 ]

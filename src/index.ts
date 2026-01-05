@@ -33,7 +33,8 @@ export class TidyCleaner {
                     exclude: [],
                     redirect: '',
                     amp: null,
-                    decode: null
+                    decode: null,
+                    allow: []
                 },
                 rule
             ) as IRule;
@@ -106,7 +107,8 @@ export class TidyCleaner {
                 is_new_host: false,
                 isNewHost: false,
                 full_clean: false,
-                fullClean: false
+                fullClean: false,
+                allowed: []
             }
         };
 
@@ -147,6 +149,7 @@ export class TidyCleaner {
             if (rule.match_href === true) match_s = original.href;
             // Reset lastIndex
             rule.match.lastIndex = 0;
+            data.info.allowed.push(...rule.allow);
             if (rule.match.exec(match_s) !== null) {
                 // Loop through the rules and add to to_remove
                 to_remove = [...to_remove, ...(rule.rules || [])];
@@ -179,8 +182,9 @@ export class TidyCleaner {
             }
         }
 
-        // Delete any matching parameters
+        // Delete any matching parameters (except those in allowed list)
         for (const key of to_remove) {
+            if (data.info.allowed.includes(key)) continue;
             if (cleaner.has(key)) {
                 data.info.removed.push({ key, value: cleaner.get(key) as string });
                 cleaner.delete(key);

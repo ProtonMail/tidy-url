@@ -62,6 +62,11 @@ export interface IRule {
     };
     /** Remove empty values */
     rev: boolean;
+    /**
+     * Parameters that should be allowed (not removed) even if they match a global rule.
+     * This is useful for site-specific parameters that conflict with global tracking rules.
+     */
+    allow: string[];
 }
 
 export interface IData {
@@ -93,6 +98,8 @@ export interface IData {
         full_clean: boolean;
         /** If the code reached the end of the clean without error */
         fullClean: boolean;
+        /** Parameters that were allowed (overrides other rules) */
+        allowed: string[];
     };
 }
 
