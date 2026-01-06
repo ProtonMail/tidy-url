@@ -1,4 +1,4 @@
-Total unique rules: 905
+Total unique rules: 924
 
 | Match                         | Rules |
 | :---------------------------- | :---- |
@@ -14,6 +14,7 @@ Total unique rules: 905
 | anrdoezrs.net                 | 1     |
 | api.ffm.to                    | 1     |
 | app.link                      | 16    |
+| app.message.asce              | 0     |
 | apple.com                     | 12    |
 | audible.com                   | 6     |
 | awin1.com                     | 4     |
@@ -39,6 +40,7 @@ Total unique rules: 905
 | click.redditmail.com          | 1     |
 | cnbc.com                      | 1     |
 | cnn.com                       | 3     |
+| cointiply.com                 | 1     |
 | connect.studentbeans.com      | 1     |
 | cookiepro.com                 | 2     |
 | cooking.nytimes.com           | 10    |
@@ -46,6 +48,7 @@ Total unique rules: 905
 | curseforge.com                | 1     |
 | dailymail.co.uk               | 2     |
 | deals.dominos.co.nz           | 1     |
+| dev.to                        | 4     |
 | discord.com                   | 2     |
 | dlgamer.com                   | 1     |
 | dpbolvw.net                   | 1     |
@@ -125,6 +128,7 @@ Total unique rules: 905
 | medium.com                    | 1     |
 | microsoft.com                 | 2     |
 | mightyape                     | 1     |
+| milda-clq.com                 | 9     |
 | milkrun.com                   | 2     |
 | mirror.co.uk                  | 1     |
 | mouser.com                    | 1     |
@@ -169,6 +173,7 @@ Total unique rules: 905
 | redirectingat.com             | 5     |
 | rekrute.com                   | 2     |
 | rosequake.com                 | 6     |
+| rumble.com                    | 1     |
 | s.amazon-adsystem.com         | 6     |
 | s.pemsrv.com                  | 10    |
 | seek.co.nz                    | 2     |
@@ -192,6 +197,7 @@ Total unique rules: 905
 | syteapi.com                   | 1     |
 | techcrunch.com                | 3     |
 | the-sun.com                   | 1     |
+| theatlantic.com               | 2     |
 | theguardian.com               | 4     |
 | thenewsminute.com             | 1     |
 | thewarehouse.co.nz            | 6     |
