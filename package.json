@@ -1,6 +1,6 @@
 {
     "name": "@protontech/tidy-url",
-    "version": "1.18.4",
+    "version": "1.18.5",
     "description": "Cleans/removes tracking or garbage parameters from URLs",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
