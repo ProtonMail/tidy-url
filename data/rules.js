@@ -1485,4 +1485,9 @@ module.exports = [
         match: /.*.app\.message\.asce\.org/i,
         allow: ['elq']
     },
+    {
+        name: 'fernsehlotterie.de',
+        match: /fernsehlotterie.de/i,
+        rev: true
+    }
 ]

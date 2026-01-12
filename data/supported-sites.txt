@@ -1,4 +1,4 @@
-Total unique rules: 924
+Total unique rules: 923
 
 | Match                         | Rules |
 | :---------------------------- | :---- |
@@ -65,6 +65,7 @@ Total unique rules: 924
 | express.co.uk                 | 1     |
 | facebook.com                  | 8     |
 | fanatical.com                 | 5     |
+| fernsehlotterie.de            | 0     |
 | findojobs.co.nz               | 1     |
 | fiverr.com                    | 6     |
 | flexlinkspro.com              | 1     |
