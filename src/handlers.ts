@@ -26,7 +26,7 @@ handlers['urldefense.proofpoint.com'] = {
             const arg = args.urlParams.get('u');
 
             if (arg === null) throw new Error('Target parameter (u) was null');
-            const url = decodeURIComponent(arg.replace(/-/g, '%')).replace(/_/g, '/').replace(/%2F/g, '/');
+            const url = decodeURIComponent(arg.replace(/_/g, '/').replace(/-/g, '%'));
 
             return { url };
         } catch (error) {
